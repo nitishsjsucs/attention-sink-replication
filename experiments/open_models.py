@@ -29,7 +29,6 @@ DEFAULT_MODELS = [
     "facebook/opt-350m",
     "HuggingFaceTB/SmolLM2-135M",
     "HuggingFaceTB/SmolLM2-360M",
-    "Qwen/Qwen2.5-0.5B",
 ]
 RESULTS = Path(__file__).resolve().parent.parent / "results"
 

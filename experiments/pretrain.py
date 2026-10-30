@@ -73,7 +73,7 @@ def main():
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--weight-decay", type=float, default=0.1)
-    ap.add_argument("--train-docs", type=int, default=300_000)
+    ap.add_argument("--train-docs", type=int, default=150_000)
     ap.add_argument("--eval-every", type=int, default=250)
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()

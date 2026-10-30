@@ -13,6 +13,11 @@ RESULTS = ROOT / "results"
 FIGURES = ROOT / "figures"
 
 
+def first_vs_rest(norms):
+    """norms: (layers, T). Per layer, token-1 norm over the mean of the rest."""
+    return [row[0] / (sum(row[1:]) / len(row[1:])) for row in norms]
+
+
 def open_models():
     rows = [json.loads(p.read_text()) for p in sorted(RESULTS.glob("*.json"))]
     if not rows:
@@ -32,17 +37,15 @@ def open_models():
     for r in rows:
         nat = r["inputs"]["natural"]
         name = r["model"].split("/")[-1]
-        last = len(nat["hidden_norm"]) - 1
         axes[0].plot(nat["sink1_by_layer"], label=name)
-        hn = nat["hidden_norm"][last // 2]  # a middle layer
-        axes[1].plot([hn[0] / (sum(hn[1:]) / len(hn[1:]))], "o", label=name)
-        kn, vn = nat["key_norm"], nat["value_norm"]
-        ratio = [vn[l][0] / (sum(vn[l][1:]) / len(vn[l][1:])) for l in range(len(vn))]
-        axes[2].plot(ratio, label=name)
+        # hidden_norm has an extra entry for the embeddings; drop it to align with layers.
+        axes[1].plot(first_vs_rest(nat["hidden_norm"][1:]), label=name)
+        axes[2].plot(first_vs_rest(nat["value_norm"]), label=name)
     axes[0].set(title="Sink_1 by layer (natural text)", xlabel="layer", ylabel="% of heads")
-    axes[1].set(title="Hidden-state norm, token 1 / mean of others (middle layer)", xticks=[])
-    axes[2].set(title="Value norm, token 1 / mean of others", xlabel="layer")
-    axes[2].axhline(1, color="gray", lw=0.5)
+    axes[1].set(title="Hidden-state norm, token 1 / mean of others", xlabel="layer", yscale="log")
+    axes[2].set(title="Value norm, token 1 / mean of others", xlabel="layer", yscale="log")
+    for ax in axes[1:]:
+        ax.axhline(1, color="gray", lw=0.5)
     axes[0].legend(fontsize=7)
     fig.tight_layout()
     FIGURES.mkdir(exist_ok=True)

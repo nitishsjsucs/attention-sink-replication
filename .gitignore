@@ -4,3 +4,4 @@ data/
 results_run.log
 *.pt
 .DS_Store
+pretrain_run.log
