@@ -38,6 +38,16 @@ The paper's own pretraining runs use 60M-1B models on 5B tokens across 4 A100s. 
 train on tens of millions of tokens, so they test whether the *direction* of each effect holds at small
 scale, not the paper's exact numbers.
 
+### Experiment 4 log
+
+- **Run 1** (softmax, 3k steps, 25M tokens, lr 1e-3): val loss 10.9 → 2.11, but **Sink_1 stayed at
+  0.0% at every checkpoint**. This fits the paper's finding that the sink only emerges "after effective
+  optimization on sufficient training data". It also means the softmax baseline has no sink yet for
+  sigmoid to remove. Result: `results/pretrain/softmax_lr0.001_wd0.1_steps3000_seed0.json`.
+- **Run 2** (softmax, 15k steps, 123M tokens, 1M stories): in progress. It also tracks `Sink_eos`,
+  the share of heads that sink on an end-of-story token, in case the sink forms on story boundaries
+  instead of position 1.
+
 ## Run it
 
 ```bash
@@ -47,10 +57,11 @@ uv run pytest
 # Experiments 1-3: ~5 min on an M-series Mac (downloads ~5 GB of models)
 PYTHONPATH=. uv run python experiments/open_models.py
 
-# Experiment 4: one run per attention variant
-PYTHONPATH=. uv run python experiments/pretrain.py --attention softmax --steps 3000
-PYTHONPATH=. uv run python experiments/pretrain.py --attention sigmoid --steps 3000
-PYTHONPATH=. uv run python experiments/pretrain.py --attention softmax_kbias --steps 3000
+# Experiment 4: one run per attention variant (~2 h each on an M5 with bf16).
+# Checkpoints every eval; rerunning the same command resumes an interrupted run.
+for a in softmax sigmoid softmax_kbias; do
+  PYTHONPATH=. uv run python experiments/pretrain.py --attention $a --steps 15000 --eval-every 500 --train-docs 1000000
+done
 
 # Table + figures into results/summary.md and figures/
 PYTHONPATH=. uv run python experiments/report.py

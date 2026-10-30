@@ -26,3 +26,12 @@ def test_softmax_rows_sum_to_one_and_kbias_rows_do_not_exceed_one():
     assert torch.allclose(a.sum(-1), torch.ones(1, 1, 2, 8), atol=1e-5)
     _, a = TinyLM(Config(**base, attention="softmax_kbias"))(ids, return_attn=True)
     assert torch.all(a.sum(-1) < 1)
+
+
+def test_fused_softmax_matches_explicit_path():
+    torch.manual_seed(0)
+    model = TinyLM(Config(vocab_size=100, d_model=32, n_layers=2, n_heads=2, max_len=16)).eval()
+    ids = torch.randint(0, 100, (2, 16))
+    fused = model(ids)
+    explicit, _ = model(ids, return_attn=True)
+    assert torch.allclose(fused, explicit, atol=1e-5)

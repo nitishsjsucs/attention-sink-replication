@@ -62,10 +62,14 @@ class Attention(nn.Module):
         if self.kind == "softmax_kbias":
             self.sink_key = nn.Parameter(torch.zeros(self.h, 1, self.dh))
 
-    def forward(self, x, cos, sin):
+    def forward(self, x, cos, sin, return_attn=False):
         B, T, _ = x.shape
         q, k, v = self.qkv(x).view(B, T, 3, self.h, self.dh).permute(2, 0, 3, 1, 4)
         q, k = apply_rope(q, cos[:T], sin[:T]), apply_rope(k, cos[:T], sin[:T])
+        if self.kind == "softmax" and not return_attn:
+            # Fused kernel for training; same math as the explicit path below.
+            y = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+            return self.out(y.transpose(1, 2).reshape(B, T, -1)), None
         scores = q @ k.transpose(-1, -2) / math.sqrt(self.dh)  # (B, h, T, T)
         causal = torch.ones(T, T, dtype=torch.bool, device=x.device).tril()
 
@@ -98,8 +102,8 @@ class Block(nn.Module):
         self.up = nn.Linear(cfg.d_model, hidden, bias=False)
         self.down = nn.Linear(hidden, cfg.d_model, bias=False)
 
-    def forward(self, x, cos, sin):
-        a, attn = self.attn(self.n1(x), cos, sin)
+    def forward(self, x, cos, sin, return_attn=False):
+        a, attn = self.attn(self.n1(x), cos, sin, return_attn)
         x = x + a
         h = self.n2(x)
         return x + self.down(F.silu(self.gate(h)) * self.up(h)), attn
@@ -127,7 +131,7 @@ class TinyLM(nn.Module):
         x = self.embed(ids)
         attns = []
         for block in self.blocks:
-            x, attn = block(x, self.cos, self.sin)
+            x, attn = block(x, self.cos, self.sin, return_attn)
             if return_attn:
                 attns.append(attn)
         logits = self.head(self.norm(x))

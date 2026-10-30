@@ -60,7 +60,8 @@ def pretrain():
     fig, (a, b) = plt.subplots(1, 2, figsize=(11, 4))
     lines = ["| Attention | Params | Tokens | Final val loss | Final Sink_1 |", "|---|---|---|---|---|"]
     for r in runs:
-        log, name = r["log"], r["args"]["attention"]
+        log, args = r["log"], r["args"]
+        name = f"{args['attention']} lr={args['lr']:g} wd={args['weight_decay']:g} {args['steps']} steps"
         tokens = [e["tokens"] / 1e6 for e in log]
         a.plot(tokens, [e["sink1"] for e in log], label=name)
         b.plot(tokens, [e["val_loss"] for e in log], label=name)

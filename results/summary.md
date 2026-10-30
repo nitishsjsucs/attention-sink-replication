@@ -15,3 +15,8 @@
 | EleutherAI/pythia-410m | 68.2 | 67.0 | 0.0 | 8.6 |
 | EleutherAI/pythia-70m | 15.5 | 6.1 | 0.0 | 7.8 |
 
+## Pretraining from scratch on TinyStories
+
+| Attention | Params | Tokens | Final val loss | Final Sink_1 |
+|---|---|---|---|---|
+| softmax lr=0.001 wd=0.1 3000 steps | 30.5M | 24.6M | 2.110 | 0.0 |
