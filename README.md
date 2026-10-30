@@ -31,8 +31,8 @@ heads and samples, that sink on *k*. As in the paper: ε = 0.3, T = 64. The impl
 | 1 | Sinks exist across open LMs, even Pythia-14M; within Pythia they grow with scale (Sec. 3.3) | Sink_1 for GPT-2, Pythia 14M-410M, OPT, SmolLM2 on the paper's probe text | done |
 | 2 | Sinks persist on random tokens; on one repeated token they vanish in rotary-PE models but not learned-PE models (Sec. 3.2, App. C.1) | Same models on random-token and one-repeated-token inputs | done |
 | 3 | The first token has a massive hidden-state norm but small key and value norms, so it acts like a key bias (Sec. 3.1) | L2 norms of hidden states, keys and values per position and layer | done |
-| 4 | Sigmoid attention without normalization prevents the sink; a learnable key bias ("K biases") absorbs it (Sec. 7) | Pretrain a ~30M LLaMA-style model on TinyStories with `softmax`, `sigmoid`, `softmax_kbias` | in progress |
-| 5 | Weight decay and learning rate affect sink strength (Sec. 5-6) | `--weight-decay` / `--lr` sweeps on the same model | planned |
+| 4 | Sigmoid attention without normalization prevents the sink; a learnable key bias ("K biases") absorbs it (Sec. 7) | Pretrain a ~30M LLaMA-style model on TinyStories with `softmax`, `sigmoid`, `softmax_kbias` | softmax done; no sink below ~123M tokens, which blocks the comparison (see log) |
+| 5 | Weight decay and learning rate affect sink strength (Sec. 4, 6) | `--weight-decay` / `--lr` sweeps on the same model | γ = 0.1 vs 0.5 run; no sink at either |
 
 The paper's own pretraining runs use 60M-1B models on 5B tokens across 4 A100s. Experiments 4-5 here
 train on tens of millions of tokens, so they test whether the *direction* of each effect holds at small
@@ -54,9 +54,17 @@ scale, not the paper's exact numbers.
   Sink_1 "maintains a very small value (less than 1%)". In the default setup (60M model, 1M-token
   batches, 2048 context, lr 4e-4) the sink appears between 1k and 2k steps, i.e. after about
   1-2B tokens. Runs 1-2 here saw 25M and 123M tokens.
-- **Next:** reaching a sink at this throughput (~17k tokens/s) would take about 16 hours per
-  billion tokens. Cheaper levers the paper identifies: larger weight decay (Table 2) and a higher
-  learning rate (Table 9). The paper also trains with 2048-token context versus 256 here.
+- **Run 3** (softmax, weight decay 0.5, otherwise as run 2): the paper's Table 2 puts the strongest
+  sink at γ = 0.5 (41.1% vs. 18.2% at γ = 0.1). Here val loss reached 1.81 (vs. 1.75 at γ = 0.1, the
+  same small loss cost the paper reports), and **Sink_1 was again 0.0% at every checkpoint**. The
+  highest per-head α₁ rose only from 0.081 to 0.091, far below ε = 0.3.
+
+**Conclusion for experiment 4.** At up to 123M tokens no softmax model formed a sink, even at the
+paper's most sink-friendly weight decay. That reproduces the paper's data-amount result (App. D.2:
+under ~100M tokens Sink_1 stays below 1%). But because the softmax baseline never sinks, the
+sigmoid-vs-softmax comparison can't be tested at this compute budget, so those runs weren't done.
+Testing it needs roughly 1-2B tokens per run, about 16-32 hours each at the ~17k tokens/s an M5
+manages here, or a few hours on a single A100. The code supports it unchanged.
 
 ## Run it
 
