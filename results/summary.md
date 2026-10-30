@@ -19,4 +19,5 @@
 
 | Attention | Params | Tokens | Final val loss | Final Sink_1 |
 |---|---|---|---|---|
+| softmax lr=0.001 wd=0.1 15000 steps | 30.5M | 122.9M | 1.748 | 0.0 |
 | softmax lr=0.001 wd=0.1 3000 steps | 30.5M | 24.6M | 2.110 | 0.0 |

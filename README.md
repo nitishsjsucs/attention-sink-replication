@@ -44,9 +44,19 @@ scale, not the paper's exact numbers.
   0.0% at every checkpoint**. This fits the paper's finding that the sink only emerges "after effective
   optimization on sufficient training data". It also means the softmax baseline has no sink yet for
   sigmoid to remove. Result: `results/pretrain/softmax_lr0.001_wd0.1_steps3000_seed0.json`.
-- **Run 2** (softmax, 15k steps, 123M tokens, 1M stories): in progress. It also tracks `Sink_eos`,
-  the share of heads that sink on an end-of-story token, in case the sink forms on story boundaries
-  instead of position 1.
+- **Run 2** (softmax, 15k steps, 123M tokens, 1M stories, no data repeated): val loss fell to 1.75,
+  and **Sink_1 was still 0.0% at every checkpoint**. `Sink_eos` (heads sinking on an end-of-story
+  token) never went above 2.4%, so the sink didn't move to story boundaries either. In the final
+  model every head's α₁ is 0.03-0.08, at or below the 0.074 that uniform causal attention would give
+  over 64 tokens, so position 1 gets no special treatment. The heads do learn real structure: some
+  put 30-56% of their attention on the previous token.
+- **This matches the paper.** Its Appendix D.2 / Figure 28: with only 50M or 100M training tokens,
+  Sink_1 "maintains a very small value (less than 1%)". In the default setup (60M model, 1M-token
+  batches, 2048 context, lr 4e-4) the sink appears between 1k and 2k steps, i.e. after about
+  1-2B tokens. Runs 1-2 here saw 25M and 123M tokens.
+- **Next:** reaching a sink at this throughput (~17k tokens/s) would take about 16 hours per
+  billion tokens. Cheaper levers the paper identifies: larger weight decay (Table 2) and a higher
+  learning rate (Table 9). The paper also trains with 2048-token context versus 256 here.
 
 ## Run it
 
